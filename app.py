@@ -13,10 +13,10 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- CSS 視覺魔法 (賽博龐克霓虹風) ---\
+# --- CSS 視覺魔法 (賽博龐克霓虹風 - 高對比版) ---\
 st.markdown("""
     <style>
-    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&family=Noto+Sans+TC:wght@300;500&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&family=Noto+Sans+TC:wght@300;500;700&display=swap');
 
     /* 全局背景：深空黑 + 網格 */
     .stApp { 
@@ -25,17 +25,17 @@ st.markdown("""
             linear-gradient(rgba(255, 0, 128, 0.05) 1px, transparent 1px),
             linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
         background-size: 30px 30px;
-        font-family: 'Rajdhani', 'Noto Sans TC', sans-serif;
-        color: #E0E0E0;
+        font-family: 'Noto Sans TC', 'Rajdhani', sans-serif; /* 優先使用中文優化字體 */
+        color: #FFFFFF; /* 全局文字預設為白色，確保可讀性 */
     }
     
     .block-container { padding-top: 2rem !important; padding-bottom: 5rem !important; }
 
     /* --- Header (全息投影面板) --- */
     .header-container {
-        background: rgba(10, 10, 10, 0.8);
+        background: rgba(20, 20, 20, 0.9);
         border: 1px solid #FF0080;
-        box-shadow: 0 0 15px rgba(255, 0, 128, 0.3), inset 0 0 20px rgba(255, 0, 128, 0.1);
+        box-shadow: 0 0 15px rgba(255, 0, 128, 0.4), inset 0 0 20px rgba(255, 0, 128, 0.1);
         border-radius: 5px;
         padding: 25px;
         text-align: center;
@@ -75,25 +75,33 @@ st.markdown("""
         text-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
     }
     
-    .sub-title { color: #00E5FF; font-size: 18px; margin-top: 5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    .sub-title { 
+        color: #00E5FF; 
+        font-size: 20px; 
+        margin-top: 5px; 
+        font-weight: 700; 
+        letter-spacing: 1px; 
+        text-shadow: 0 0 5px rgba(0, 229, 255, 0.6);
+    }
     
     .teacher-tag { 
         display: inline-block; 
         margin-top: 15px; 
-        padding: 4px 12px; 
-        background: rgba(255, 0, 255, 0.1); 
-        color: #FF00FF;
+        padding: 6px 15px; 
+        background: rgba(255, 0, 255, 0.15); 
+        color: #FF80FF; /* 亮粉色，提高可讀性 */
         border: 1px solid #FF00FF;
-        font-size: 12px; 
-        font-family: 'Orbitron', sans-serif;
+        font-size: 14px; 
+        font-weight: bold;
         box-shadow: 0 0 5px rgba(255, 0, 255, 0.4);
+        border-radius: 4px;
     }
 
     /* --- Cards (HUD 數據框風格) --- */
     .word-card {
-        background: rgba(20, 20, 20, 0.6);
+        background: rgba(30, 30, 30, 0.8); /* 背景加深，增加文字對比 */
         backdrop-filter: blur(5px);
-        border: 1px solid #333;
+        border: 1px solid #555;
         border-left: 4px solid #00E5FF; 
         padding: 15px 10px;
         text-align: center;
@@ -114,67 +122,83 @@ st.markdown("""
     }
 
     .word-card h3 {
-        color: #FFFFFF !important;
-        font-family: 'Orbitron', sans-serif;
+        color: #FFFFFF !important; /* 純白標題 */
+        font-family: 'Orbitron', 'Noto Sans TC', sans-serif;
         font-weight: 700;
         margin: 0;
-        padding-bottom: 5px;
-        font-size: 20px;
+        padding-bottom: 8px;
+        font-size: 22px;
         letter-spacing: 1px;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
     }
 
     .word-card:hover { 
         transform: translateY(-5px); 
         box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); 
         border-color: #00E5FF;
-        background: rgba(0, 229, 255, 0.05);
+        background: rgba(0, 229, 255, 0.1);
     }
     
     .icon-box { font-size: 30px; margin-bottom: 5px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
-    .zh-word { font-size: 14px; color: #888; font-weight: 500; font-family: 'Noto Sans TC'; }
+    
+    /* 中文解釋文字：改成亮灰色，確保清楚 */
+    .zh-word { font-size: 16px; color: #DDDDDD; font-weight: 500; font-family: 'Noto Sans TC'; }
 
     /* --- Sentences (終端機風格) --- */
     .sentence-box {
-        background: #0A0A0A;
+        background: #111111;
         padding: 20px;
         margin-bottom: 15px;
-        border: 1px dashed #333;
-        border-left: 2px solid #FF00FF;
-        font-family: 'Rajdhani', monospace;
+        border: 1px dashed #555;
+        border-left: 3px solid #FF00FF;
+        font-family: 'Noto Sans TC', monospace;
     }
-    .sentence-amis { font-size: 20px; color: #FF00FF; font-weight: 700; margin-bottom: 5px; text-shadow: 0 0 5px rgba(255,0,255,0.4); }
-    .sentence-zh { font-size: 15px; color: #AAAAAA; }
+    .sentence-amis { 
+        font-size: 20px; 
+        color: #FF55FF; /* 亮洋紅 */
+        font-weight: 700; 
+        margin-bottom: 8px; 
+        text-shadow: 0 0 5px rgba(255,0,255,0.4); 
+    }
+    .sentence-zh { 
+        font-size: 16px; 
+        color: #EEEEEE; /* 幾乎純白，確保好讀 */
+        font-weight: 400;
+    }
 
     /* --- Buttons (發光按鈕) --- */
     .stButton>button { 
         width: 100%; 
         border-radius: 0px; 
-        background: transparent; 
+        background: rgba(0, 0, 0, 0.5); 
         border: 1px solid #00E5FF; 
         color: #00E5FF !important; 
-        font-family: 'Orbitron', sans-serif;
+        font-family: 'Noto Sans TC', sans-serif;
         font-weight: bold;
+        font-size: 16px;
         transition: all 0.3s;
     }
     .stButton>button:hover { 
         background: #00E5FF; 
         color: #000 !important;
-        box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.8);
+        border-color: #FFFFFF;
     }
     .stButton>button:active { transform: scale(0.98); }
 
     /* --- Tabs (導航欄) --- */
     .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #333; }
     .stTabs [data-baseweb="tab"] {
-        color: #666 !important; 
+        color: #AAAAAA !important; 
         background-color: transparent !important;
-        font-family: 'Orbitron', sans-serif;
-        letter-spacing: 1px;
+        font-family: 'Noto Sans TC', sans-serif;
+        font-size: 16px;
     }
     .stTabs [aria-selected="true"] {
         color: #00E5FF !important;
         border-bottom: 2px solid #00E5FF;
         text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+        font-weight: bold;
     }
     
     /* Progress Bar */
@@ -222,7 +246,7 @@ SENTENCES = [
      "emoji": "🍈", "file": "s_o_facidol_i"},
 ]
 
-# 測驗題庫 (自動生成或手動指定)
+# 測驗題庫
 QUIZ_DATA = [
     {"q": "O maan ko ______ iso a sikaen? / 你喜歡什麼...", "zh": "所喜歡的", "ans": "kaolahan", "opts": ["kaolahan", "facidol", "haca"]},
     {"q": "______ no wama konini a kohaw / 爸爸喜歡的湯", "zh": "所喜歡的", "ans": "Kaolahan", "opts": ["Kaolahan", "Maemin", "Dateng"]},
@@ -244,7 +268,7 @@ def play_audio(text, filename_base=None):
                     st.audio(path, format=mime)
                     return 
         # 樣式微調：配合暗色背景
-        st.markdown(f"<span style='color:#FF00FF; font-size:10px; border:1px solid #FF00FF; padding:2px 5px;'>🔇 NO AUDIO: {filename_base}</span>", unsafe_allow_html=True)
+        st.markdown(f"<span style='color:#FF00FF; font-size:12px; border:1px solid #FF00FF; padding:2px 5px;'>🔇 缺少音檔: {filename_base}</span>", unsafe_allow_html=True)
     else:
         try:
             speak_text = text.split('/')[0].strip()
@@ -289,7 +313,7 @@ if 'q1_data' not in st.session_state:
 
 # --- 3. 介面呈現 ---
 def show_learning_mode():
-    st.markdown("<h3 style='color:#00E5FF; text-align:center; margin-bottom:20px; font-family:Orbitron;'>// VOCABULARY_DATABASE</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#00E5FF; text-align:center; margin-bottom:20px; font-family:Orbitron;'>// 單字資料庫 (Vocabulary)</h3>", unsafe_allow_html=True)
     
     cols = st.columns(3)
     for idx, item in enumerate(VOCABULARY):
@@ -308,7 +332,7 @@ def show_learning_mode():
             st.write("") 
 
     st.markdown("---")
-    st.markdown("<h3 style='color:#FF00FF; text-align:center; margin-bottom:20px; font-family:Orbitron;'>// SENTENCE_LOGS</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color:#FF00FF; text-align:center; margin-bottom:20px; font-family:Orbitron;'>// 例句檔案 (Sentences)</h3>", unsafe_allow_html=True)
     
     for item in SENTENCES:
         st.markdown(f"""
@@ -320,7 +344,7 @@ def show_learning_mode():
         play_audio(item['amis'], filename_base=item['file'])
 
 def show_quiz_mode():
-    st.markdown("<h3 style='text-align: center; color: #E0E0E0; font-family:Orbitron;'>// SYSTEM_TEST</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='text-align: center; color: #E0E0E0; font-family:Orbitron;'>// 系統測驗 (System Test)</h3>", unsafe_allow_html=True)
     st.progress((st.session_state.current_q) / 3)
     st.write("")
 
@@ -329,8 +353,8 @@ def show_quiz_mode():
         target = data['target']
         st.markdown(f"""
         <div class="word-card" style="border-left-color:#00E5FF;">
-            <h3>🎧 AUDIO_INPUT_CHECK</h3>
-            <p style="color:#888;">Which word matches the audio?</p>
+            <h3>🎧 聽力同步檢測</h3>
+            <p style="color:#CCCCCC;">請選擇與聲音相符的單字</p>
         </div>
         """, unsafe_allow_html=True)
         play_audio(target['amis'], filename_base=target['file'])
@@ -342,20 +366,20 @@ def show_quiz_mode():
                 if st.button(f"{opt['zh']}", key=f"q1_{idx}"):
                     if opt['amis'] == target['amis']:
                         st.balloons()
-                        st.success("ACCESS GRANTED (答對了)")
+                        st.success("存取授權 (答對了)")
                         time.sleep(1)
                         st.session_state.score += 1
                         st.session_state.current_q += 1
                         st.rerun()
                     else:
-                        st.error("ACCESS DENIED (再試一次)")
+                        st.error("存取拒絕 (再試一次)")
 
     elif st.session_state.current_q == 1:
         data = st.session_state.q2_data
         st.markdown(f"""
         <div class="word-card" style="border-left-color:#FFFF00;">
-            <h3>🧩 DATA_RECOVERY</h3>
-            <h2 style="color:#FFF;">{data['q'].replace('______', '<span style="color:#FFFF00; text-shadow:0 0 10px #FFFF00;">[ MISSING ]</span>')}</h2>
+            <h3>🧩 數據修復 (填空)</h3>
+            <h2 style="color:#FFF;">{data['q'].replace('______', '<span style="color:#FFFF00; text-shadow:0 0 10px #FFFF00;">[ 遺失數據 ]</span>')}</h2>
         </div>
         """, unsafe_allow_html=True)
         
@@ -365,20 +389,20 @@ def show_quiz_mode():
                 if st.button(opt, key=f"q2_{i}"):
                     if opt.lower() in data['ans'].lower() or data['ans'].lower() in opt.lower():
                         st.balloons()
-                        st.success("DATA RESTORED (太棒了)")
+                        st.success("數據已修復 (太棒了)")
                         time.sleep(1)
                         st.session_state.score += 1
                         st.session_state.current_q += 1
                         st.rerun()
                     else:
-                        st.error("ERROR (不對喔)")
+                        st.error("錯誤 (不對喔)")
 
     elif st.session_state.current_q == 2:
         data = st.session_state.q3_data
         target = data['target']
         st.markdown(f"""
         <div class="word-card" style="border-left-color:#FF00FF;">
-            <h3>🗣️ TRANSLATION_PROTOCOL</h3>
+            <h3>🗣️ 翻譯協定</h3>
             <h3 style="color:#FF00FF;">{target['amis']}</h3>
         </div>
         """, unsafe_allow_html=True)
@@ -389,23 +413,23 @@ def show_quiz_mode():
             if st.button(opt):
                 if opt == target['zh']:
                     st.balloons()
-                    st.success("SYNC COMPLETE (全對)")
+                    st.success("同步完成 (全對)")
                     time.sleep(1)
                     st.session_state.score += 1
                     st.session_state.current_q += 1
                     st.rerun()
                 else:
-                    st.error("SYNC FAILED (再想一下)")
+                    st.error("同步失敗 (再想一下)")
 
     else:
         st.markdown(f"""
         <div class="word-card" style="border-left: 4px solid #00E5FF; background: rgba(0, 229, 255, 0.1);">
-            <h1 style='color: #00E5FF; font-family:Orbitron;'>MISSION ACCOMPLISHED</h1>
-            <p style='color:#FFF;'>SCORE: {st.session_state.score} / 3</p>
+            <h1 style='color: #00E5FF; font-family:Orbitron;'>任務完成 (Mission Complete)</h1>
+            <p style='color:#FFF;'>得分: {st.session_state.score} / 3</p>
             <div style='font-size: 60px;'>🚀</div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button("REBOOT SYSTEM (重新開始)"):
+        if st.button("重啟系統 (重新開始)"):
             init_quiz()
             st.rerun()
 
@@ -413,7 +437,7 @@ def show_quiz_mode():
 def show_debug_info():
     st.markdown("---")
     st.markdown("""
-    <div style="text-align:center; color:#444; font-size:12px; font-family:Orbitron;">
+    <div style="text-align:center; color:#888; font-size:12px; font-family:Orbitron;">
         SYSTEM VER 2.0 | DEVELOPED BY AI | POWERED BY STREAMLIT
     </div>
     """, unsafe_allow_html=True)
@@ -424,11 +448,11 @@ def main():
     <div class="header-container">
         <h1 class="main-title">KAOLAHAN</h1>
         <div class="sub-title">所喜歡的</div>
-        <div class="teacher-tag">INSTRUCTOR: 高春美 | PROVIDER: 高春美</div>
+        <div class="teacher-tag">講師：高春美 | 教材提供者：高春美</div>
     </div>
     """, unsafe_allow_html=True)
     
-    tab1, tab2 = st.tabs(["📂 DATABASE (學習)", "⚔️ SIMULATION (測驗)"])
+    tab1, tab2 = st.tabs(["📂 單字學習", "⚔️ 自我測驗"])
     
     with tab1:
         show_learning_mode()
