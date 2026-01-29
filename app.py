@@ -1,272 +1,441 @@
 import streamlit as st
 import time
-import random
 import os
+import random
+from gtts import gTTS
+from io import BytesIO
 
-# --- 1. 設定檔案路徑 ---
-# 這裡設定音檔存放的資料夾路徑
-AUDIO_FOLDER = os.path.join("Teacher_Course22", "audio")
-
-def play_audio(filename):
-    """播放指定資料夾內的 m4a 檔案"""
-    # 組合完整路徑：Teacher_Course22/audio/檔名
-    full_path = os.path.join(AUDIO_FOLDER, filename)
-    
-    if os.path.exists(full_path):
-        with open(full_path, "rb") as f:
-            audio_bytes = f.read()
-        st.audio(audio_bytes, format='audio/mp4')
-    else:
-        # 手機版顯示簡潔的錯誤提示
-        st.warning(f"⚠️ 找不到音檔 ({filename})")
-
-def safe_rerun():
-    """自動判斷並執行重整"""
-    try:
-        st.rerun()
-    except AttributeError:
-        try:
-            st.experimental_rerun()
-        except:
-            st.stop()
-
-# --- 0. 系統配置 (隱藏預設選單，適合手機) ---
+# --- 0. 系統配置 ---\
 st.set_page_config(
-    page_title="Kaolahan", 
-    page_icon="🍲", 
-    layout="centered",
-    initial_sidebar_state="collapsed" # 預設收起側邊欄
+    page_title="Kaolahan - 所喜歡的", 
+    page_icon="💖", 
+    layout="centered", 
+    initial_sidebar_state="collapsed"
 )
 
-# --- CSS 美化 (豐收暖橘 - 手機版優化) ---
+# --- CSS 視覺魔法 (賽博龐克霓虹風) ---\
 st.markdown("""
     <style>
-    /* 隱藏 Streamlit 預設漢堡選單與 Footer，讓介面更像原生 App */
-    #MainMenu {visibility: hidden;}
-    footer {visibility: hidden;}
-    
-    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-    
-    /* 單字卡 */
-    .word-card {
-        background: linear-gradient(135deg, #FFF3E0 0%, #ffffff 100%);
-        padding: 15px;
-        border-radius: 15px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        text-align: center;
-        margin-bottom: 10px;
-        border-bottom: 3px solid #FF7043;
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&family=Noto+Sans+TC:wght@300;500&display=swap');
+
+    /* 全局背景：深空黑 + 網格 */
+    .stApp { 
+        background-color: #050505;
+        background-image: 
+            linear-gradient(rgba(255, 0, 128, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(0, 255, 255, 0.05) 1px, transparent 1px);
+        background-size: 30px 30px;
+        font-family: 'Rajdhani', 'Noto Sans TC', sans-serif;
+        color: #E0E0E0;
     }
-    .emoji-icon { font-size: 40px; margin-bottom: 5px; }
-    .amis-text { font-size: 22px; font-weight: bold; color: #E64A19; }
-    .chinese-text { font-size: 15px; color: #795548; }
-    .source-tag { font-size: 11px; color: #aaa; margin-top: 5px; }
     
-    /* 句子框 */
-    .sentence-box {
-        background-color: #FFF8E1;
-        border-left: 4px solid #FFA000;
-        padding: 12px;
-        margin: 8px 0;
-        border-radius: 0 8px 8px 0;
+    .block-container { padding-top: 2rem !important; padding-bottom: 5rem !important; }
+
+    /* --- Header (全息投影面板) --- */
+    .header-container {
+        background: rgba(10, 10, 10, 0.8);
+        border: 1px solid #FF0080;
+        box-shadow: 0 0 15px rgba(255, 0, 128, 0.3), inset 0 0 20px rgba(255, 0, 128, 0.1);
+        border-radius: 5px;
+        padding: 25px;
+        text-align: center;
+        margin-bottom: 40px;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    /* 掃描線動畫效果 */
+    .header-container::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: rgba(0, 255, 255, 0.5);
+        box-shadow: 0 0 10px #00E5FF;
+        animation: scan 3s linear infinite;
+        opacity: 0.6;
     }
 
-    /* 按鈕優化：更好按 */
-    .stButton>button {
-        width: 100%; 
-        border-radius: 10px; 
-        font-size: 18px; 
-        font-weight: 600;
-        background-color: #FFCCBC; 
-        color: #BF360C; 
-        border: 1px solid #FF7043; 
-        padding: 10px;
-        margin-top: 5px;
+    @keyframes scan {
+        0% { top: 0%; }
+        100% { top: 100%; }
     }
-    .stButton>button:hover { background-color: #FFAB91; }
     
-    /* 選項卡 (Tabs) 字體加大 */
-    button[data-baseweb="tab"] {
-        font-size: 18px !important;
-        font-weight: bold !important;
+    .main-title {
+        font-family: 'Orbitron', sans-serif;
+        background: linear-gradient(90deg, #FF0080, #00E5FF);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-size: 45px;
+        font-weight: 900;
+        margin: 0;
+        letter-spacing: 2px;
+        text-shadow: 0 0 10px rgba(255, 0, 128, 0.5);
+    }
+    
+    .sub-title { color: #00E5FF; font-size: 18px; margin-top: 5px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+    
+    .teacher-tag { 
+        display: inline-block; 
+        margin-top: 15px; 
+        padding: 4px 12px; 
+        background: rgba(255, 0, 255, 0.1); 
+        color: #FF00FF;
+        border: 1px solid #FF00FF;
+        font-size: 12px; 
+        font-family: 'Orbitron', sans-serif;
+        box-shadow: 0 0 5px rgba(255, 0, 255, 0.4);
+    }
+
+    /* --- Cards (HUD 數據框風格) --- */
+    .word-card {
+        background: rgba(20, 20, 20, 0.6);
+        backdrop-filter: blur(5px);
+        border: 1px solid #333;
+        border-left: 4px solid #00E5FF; 
+        padding: 15px 10px;
+        text-align: center;
+        height: 100%;
+        margin-bottom: 15px;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    /* 角落裝飾 */
+    .word-card::before {
+        content: '';
+        position: absolute;
+        top: 0; right: 0;
+        width: 10px; height: 10px;
+        border-top: 2px solid #00E5FF;
+        border-right: 2px solid #00E5FF;
+    }
+
+    .word-card h3 {
+        color: #FFFFFF !important;
+        font-family: 'Orbitron', sans-serif;
+        font-weight: 700;
+        margin: 0;
+        padding-bottom: 5px;
+        font-size: 20px;
+        letter-spacing: 1px;
+    }
+
+    .word-card:hover { 
+        transform: translateY(-5px); 
+        box-shadow: 0 0 15px rgba(0, 229, 255, 0.4); 
+        border-color: #00E5FF;
+        background: rgba(0, 229, 255, 0.05);
+    }
+    
+    .icon-box { font-size: 30px; margin-bottom: 5px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
+    .zh-word { font-size: 14px; color: #888; font-weight: 500; font-family: 'Noto Sans TC'; }
+
+    /* --- Sentences (終端機風格) --- */
+    .sentence-box {
+        background: #0A0A0A;
+        padding: 20px;
+        margin-bottom: 15px;
+        border: 1px dashed #333;
+        border-left: 2px solid #FF00FF;
+        font-family: 'Rajdhani', monospace;
+    }
+    .sentence-amis { font-size: 20px; color: #FF00FF; font-weight: 700; margin-bottom: 5px; text-shadow: 0 0 5px rgba(255,0,255,0.4); }
+    .sentence-zh { font-size: 15px; color: #AAAAAA; }
+
+    /* --- Buttons (發光按鈕) --- */
+    .stButton>button { 
+        width: 100%; 
+        border-radius: 0px; 
+        background: transparent; 
+        border: 1px solid #00E5FF; 
+        color: #00E5FF !important; 
+        font-family: 'Orbitron', sans-serif;
+        font-weight: bold;
+        transition: all 0.3s;
+    }
+    .stButton>button:hover { 
+        background: #00E5FF; 
+        color: #000 !important;
+        box-shadow: 0 0 20px rgba(0, 229, 255, 0.6);
+    }
+    .stButton>button:active { transform: scale(0.98); }
+
+    /* --- Tabs (導航欄) --- */
+    .stTabs [data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #333; }
+    .stTabs [data-baseweb="tab"] {
+        color: #666 !important; 
+        background-color: transparent !important;
+        font-family: 'Orbitron', sans-serif;
+        letter-spacing: 1px;
+    }
+    .stTabs [aria-selected="true"] {
+        color: #00E5FF !important;
+        border-bottom: 2px solid #00E5FF;
+        text-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+    }
+    
+    /* Progress Bar */
+    .stProgress > div > div > div > div {
+        background-image: linear-gradient(to right, #00E5FF, #FF00FF);
     }
     </style>
-""", unsafe_allow_html=True)
+    """, unsafe_allow_html=True)
 
-# --- 2. 資料庫 ---
-vocab_data = [
-    {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字", "audio": "kaolahan.m4a"},
-    {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材", "audio": "facidol.m4a"},
-    {"amis": "Haca", "chi": "也 / 亦", "icon": "➕", "source": "連接詞", "audio": "haca.m4a"},
-    {"amis": "Maemin", "chi": "全部 / 所有的", "icon": "💯", "source": "數量", "audio": "maemin.m4a"},
-    {"amis": "Sikaen", "chi": "菜餚 / 配菜", "icon": "🍱", "source": "食物", "audio": "sikaen.m4a"},
-    {"amis": "Dateng", "chi": "菜 / 野菜", "icon": "🥬", "source": "食物", "audio": "dateng.m4a"},
-    {"amis": "Kohaw", "chi": "湯", "icon": "🍲", "source": "食物", "audio": "kohaw.m4a"},
-    {"amis": "Mato’asay", "chi": "老人 / 長輩", "icon": "👵", "source": "人物", "audio": "matoasay.m4a"},
+# --- 1. 資料設定 (主題：Kaolahan 所喜歡的) ---
+VOCABULARY = [
+    {"amis": "kaolahan",  "zh": "所喜歡的",   "emoji": "💖", "file": "v_kaolahan"},
+    {"amis": "facidol",   "zh": "麵包樹果",   "emoji": "🍈", "file": "v_facidol"},
+    {"amis": "haca",      "zh": "也",         "emoji": "➕", "file": "v_haca"},
+    {"amis": "maemin",    "zh": "全部",       "emoji": "👐", "file": "v_maemin"},
+    {"amis": "sikaen",    "zh": "菜餚",       "emoji": "🍱", "file": "v_sikaen"},
+    {"amis": "dateng",    "zh": "菜",         "emoji": "🥬", "file": "v_dateng"},
+    {"amis": "kohaw",     "zh": "湯",         "emoji": "🥣", "file": "v_kohaw"},
+    {"amis": "mato'asay", "zh": "老人",       "emoji": "👵", "file": "v_matoasay"},
 ]
 
-sentences = [
-    {"amis": "O maan ko kaolahan iso a sikaen?", "chi": "你喜歡什麼樣的菜呢？", "icon": "❓", "source": "問句", "audio": "sentence_01.m4a"},
-    {"amis": "O foting ko kaolahan ako a dateng.", "chi": "魚是我最喜歡的菜。", "icon": "🐟", "source": "回答", "audio": "sentence_02.m4a"},
-    {"amis": "Kaolahan no wama konini a kohaw.", "chi": "這碗是爸爸最喜歡的湯。", "icon": "👨", "source": "描述", "audio": "sentence_03.m4a"},
-    {"amis": "Tadakaolahan no mato’asay kona dateng.", "chi": "這些是老人家最喜歡的菜。", "icon": "👵", "source": "描述", "audio": "sentence_04.m4a"},
-    {"amis": "Kaolahan ako a maemin konini a sikaen.", "chi": "這些都是我最喜歡的菜餚。", "icon": "😋", "source": "感嘆", "audio": "sentence_05.m4a"},
-    {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化", "audio": "sentence_06.m4a"},
+SENTENCES = [
+    {"amis": "O maan ko kaolahan iso a sikaen?", 
+     "zh": "你喜歡什麼樣的菜呢？", 
+     "emoji": "❓", "file": "s_o_maan_ko_kaolahan"},
+     
+    {"amis": "O foting ko kaolahan ako a dateng.", 
+     "zh": "魚是我最喜歡的菜。", 
+     "emoji": "🐟", "file": "s_o_foting_ko_kaolahan"},
+     
+    {"amis": "Kaolahan no wama konini a kohaw.", 
+     "zh": "這碗是爸爸最喜歡的湯。", 
+     "emoji": "👨", "file": "s_kaolahan_no_wama"},
+     
+    {"amis": "Tadakaolahan no mato'asay kona dateng.", 
+     "zh": "這些是老人家最喜歡的菜。", 
+     "emoji": "👵", "file": "s_tadakaolahan_no_matoasay"},
+     
+    {"amis": "Kaolahan ako a maemin konini a sikaen.", 
+     "zh": "這些都是我最喜歡的菜餚。", 
+     "emoji": "😋", "file": "s_kaolahan_ako_a_maemin"},
+     
+    {"amis": "O facidol i, o tadakaolahan haca no 'Amis.", 
+     "zh": "麵包樹果也是阿美族人最愛。", 
+     "emoji": "🍈", "file": "s_o_facidol_i"},
 ]
 
-# --- 3. 隨機題庫 ---
-raw_quiz_pool = [
-    {
-        "q": "「麵包樹果」的阿美語怎麼說？",
-        "audio_file": "facidol.m4a",
-        "options": ["Facidol", "Foting", "Dateng"],
-        "ans": "Facidol",
-        "hint": "阿美族人最愛的食材之一"
-    },
-    {
-        "q": "O maan ko kaolahan iso a sikaen?",
-        "audio_file": "sentence_01.m4a",
-        "options": ["你喜歡什麼樣的菜呢？", "這是誰煮的菜？", "你要去哪裡買菜？"],
-        "ans": "你喜歡什麼樣的菜呢？",
-        "hint": "Maan 是「什麼」，Kaolahan 是「喜歡的」"
-    },
-    {
-        "q": "Kaolahan no wama konini a kohaw.",
-        "audio_file": "sentence_03.m4a",
-        "options": ["這碗是爸爸最喜歡的湯", "這碗是媽媽煮的湯", "我不喜歡喝湯"],
-        "ans": "這碗是爸爸最喜歡的湯",
-        "hint": "Wama 是爸爸，Kohaw 是湯"
-    },
-    {
-        "q": "單字測驗：Maemin",
-        "audio_file": "maemin.m4a",
-        "options": ["全部", "一點點", "沒有"],
-        "ans": "全部",
-        "hint": "Kaolahan ako a maemin (這些「全部」都是我喜歡的)"
-    },
-    {
-        "q": "單字測驗：Mato’asay",
-        "audio_file": "matoasay.m4a",
-        "options": ["老人/長輩", "小孩", "年輕人"],
-        "ans": "老人/長輩",
-        "hint": "Tadakaolahan no mato’asay (老人家最喜歡的)"
-    },
-    {
-        "q": "O foting ko kaolahan ako a dateng.",
-        "audio_file": "sentence_02.m4a",
-        "options": ["魚是我最喜歡的菜", "我喜歡吃麵包樹果", "這道菜很鹹"],
-        "ans": "魚是我最喜歡的菜",
-        "hint": "Foting 是魚"
-    },
-    {
-        "q": "「湯」的阿美語是？",
-        "audio_file": "kohaw.m4a",
-        "options": ["Kohaw", "Dateng", "Sapaiyo"],
-        "ans": "Kohaw",
-        "hint": "喝熱熱的 Kohaw"
-    }
+# 測驗題庫 (自動生成或手動指定)
+QUIZ_DATA = [
+    {"q": "O maan ko ______ iso a sikaen? / 你喜歡什麼...", "zh": "所喜歡的", "ans": "kaolahan", "opts": ["kaolahan", "facidol", "haca"]},
+    {"q": "______ no wama konini a kohaw / 爸爸喜歡的湯", "zh": "所喜歡的", "ans": "Kaolahan", "opts": ["Kaolahan", "Maemin", "Dateng"]},
+    {"q": "O ______ i, o tadakaolahan haca / 麵包樹果", "zh": "麵包樹果", "ans": "facidol", "opts": ["facidol", "kohaw", "sikaen"]},
+    {"q": "Kaolahan ako a ______ konini / 這些全部", "zh": "全部", "ans": "maemin", "opts": ["maemin", "haca", "mato'asay"]},
+    {"q": "Tadakaolahan no ______ / 老人家", "zh": "老人", "ans": "mato'asay", "opts": ["mato'asay", "wama", "foting"]},
 ]
 
-# --- 4. 狀態初始化 ---
-if 'init' not in st.session_state:
+# --- 1.5 語音核心 ---
+def play_audio(text, filename_base=None):
+    if filename_base:
+        extensions = ['m4a', 'mp3', 'wav']
+        folders = ['audio', '.'] 
+        for folder in folders:
+            for ext in extensions:
+                path = os.path.join(folder, f"{filename_base}.{ext}")
+                if os.path.exists(path):
+                    mime = 'audio/mp4' if ext == 'm4a' else 'audio/mp3'
+                    st.audio(path, format=mime)
+                    return 
+        # 樣式微調：配合暗色背景
+        st.markdown(f"<span style='color:#FF00FF; font-size:10px; border:1px solid #FF00FF; padding:2px 5px;'>🔇 NO AUDIO: {filename_base}</span>", unsafe_allow_html=True)
+    else:
+        try:
+            speak_text = text.split('/')[0].strip()
+            tts = gTTS(text=speak_text, lang='id') 
+            fp = BytesIO()
+            tts.write_to_fp(fp)
+            fp.seek(0)
+            st.audio(fp, format='audio/mp3')
+        except:
+            st.caption("🔇")
+
+# --- 2. 測驗邏輯 ---
+def init_quiz():
     st.session_state.score = 0
-    st.session_state.current_q_idx = 0
+    st.session_state.current_q = 0
     
-    selected_questions = random.sample(raw_quiz_pool, 4)
-    final_questions = []
-    for q in selected_questions:
-        q_copy = q.copy()
-        shuffled_opts = random.sample(q['options'], len(q['options']))
-        q_copy['shuffled_options'] = shuffled_opts
-        final_questions.append(q_copy)
-        
-    st.session_state.quiz_questions = final_questions
-    st.session_state.init = True
+    # Q1: 聽力
+    q1_target = random.choice(VOCABULARY)
+    others = [v for v in VOCABULARY if v['amis'] != q1_target['amis']]
+    q1_options = random.sample(others, 2) + [q1_target]
+    random.shuffle(q1_options)
+    st.session_state.q1_data = {"target": q1_target, "options": q1_options}
 
-# --- 5. 主介面 ---
+    # Q2: 填空
+    q2_data = random.choice(QUIZ_DATA)
+    random.shuffle(q2_data['opts'])
+    st.session_state.q2_data = q2_data
 
-st.markdown("<h2 style='text-align: center; color: #BF360C; margin-bottom: 0;'>Kaolahan 所喜歡的</h2>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #8D6E63; font-size: 14px;'>講師：高春美 | 教材提供者：高春美</p>", unsafe_allow_html=True)
+    # Q3: 句子翻譯
+    q3_target = random.choice(SENTENCES)
+    other_sentences = [s['zh'] for s in SENTENCES if s['zh'] != q3_target['zh']]
+    if len(other_sentences) < 2:
+        q3_options = other_sentences + [q3_target['zh']] + ["天氣很好"]
+        q3_options = q3_options[:3]
+    else:
+        q3_options = random.sample(other_sentences, 2) + [q3_target['zh']]
+    random.shuffle(q3_options)
+    st.session_state.q3_data = {"target": q3_target, "options": q3_options}
 
-# 使用 Tabs 分頁，保持手機畫面乾淨
-tab1, tab2 = st.tabs(["📖 詞彙與句型", "🎲 隨機挑戰"])
+if 'q1_data' not in st.session_state:
+    init_quiz()
 
-# === Tab 1: 學習模式 ===
-with tab1:
-    st.markdown("### 📝 核心單字")
-    # 手機版改為單欄顯示，避免太擠
-    for word in vocab_data:
-        st.markdown(f"""
-        <div class="word-card">
-            <div class="emoji-icon">{word['icon']}</div>
-            <div class="amis-text">{word['amis']}</div>
-            <div class="chinese-text">{word['chi']}</div>
-        </div>
-        """, unsafe_allow_html=True)
-        if st.button(f"🔊 播放", key=f"btn_v_{word['amis']}"):
-            play_audio(word['audio'])
+# --- 3. 介面呈現 ---
+def show_learning_mode():
+    st.markdown("<h3 style='color:#00E5FF; text-align:center; margin-bottom:20px; font-family:Orbitron;'>// VOCABULARY_DATABASE</h3>", unsafe_allow_html=True)
+    
+    cols = st.columns(3)
+    for idx, item in enumerate(VOCABULARY):
+        with cols[idx % 3]:
+            # 根據順序給予不同的邊框顏色
+            border_color = ["#00E5FF", "#FF00FF", "#FFFF00"][idx % 3]
+            
+            st.markdown(f"""
+            <div class="word-card" style="border-left-color: {border_color};">
+                <div class="icon-box">{item['emoji']}</div>
+                <h3>{item['amis']}</h3>
+                <div class="zh-word">{item['zh']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            play_audio(item['amis'], filename_base=item['file'])
+            st.write("") 
 
     st.markdown("---")
-    st.markdown("### 🗣️ 實用句型")
-    for i, sent in enumerate(sentences):
+    st.markdown("<h3 style='color:#FF00FF; text-align:center; margin-bottom:20px; font-family:Orbitron;'>// SENTENCE_LOGS</h3>", unsafe_allow_html=True)
+    
+    for item in SENTENCES:
         st.markdown(f"""
         <div class="sentence-box">
-            <div style="font-size: 18px; color: #E65100; font-weight: bold;">{sent['icon']} {sent['amis']}</div>
-            <div style="font-size: 15px; color: #5D4037; margin-top: 5px;">{sent['chi']}</div>
+            <div class="sentence-amis">>> {item['amis']}</div>
+            <div class="sentence-zh">{item['zh']}</div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button(f"▶️ 朗讀", key=f"btn_s_{i}"):
-            play_audio(sent['audio'])
+        play_audio(item['amis'], filename_base=item['file'])
 
-# === Tab 2: 測驗模式 ===
-with tab2:
-    st.markdown("### 🧠 隨機測驗")
-    
-    current_idx = st.session_state.current_q_idx
-    questions = st.session_state.quiz_questions
-    
-    if current_idx < len(questions):
-        q_data = questions[current_idx]
-        progress = (current_idx / len(questions))
-        st.progress(progress)
-        
-        st.markdown(f"**Q{current_idx + 1}: {q_data['q']}**")
-        
-        if q_data.get('audio_file'):
-            if st.button("🔊 聽題目", key=f"quiz_audio_{current_idx}"):
-                play_audio(q_data['audio_file'])
-        
-        st.write(" ") # 空行
-        
-        if f"answered_{current_idx}" not in st.session_state:
-            for idx, opt in enumerate(q_data['shuffled_options']):
-                if st.button(opt, key=f"opt_{current_idx}_{idx}"):
-                    if opt == q_data['ans']:
-                        st.session_state.score += 25
-                        st.success(f"🎉 正確！")
-                    else:
-                        st.error(f"❌ 錯了！答案是：{q_data['ans']}")
-                    
-                    st.session_state[f"answered_{current_idx}"] = True
-                    time.sleep(1.5)
-                    st.session_state.current_q_idx += 1
-                    safe_rerun()
-        else:
-            st.info("下一題...")
-            
-    else:
-        st.progress(1.0)
-        st.balloons()
-        final_score = st.session_state.score
-        
+def show_quiz_mode():
+    st.markdown("<h3 style='text-align: center; color: #E0E0E0; font-family:Orbitron;'>// SYSTEM_TEST</h3>", unsafe_allow_html=True)
+    st.progress((st.session_state.current_q) / 3)
+    st.write("")
+
+    if st.session_state.current_q == 0:
+        data = st.session_state.q1_data
+        target = data['target']
         st.markdown(f"""
-        <div style="text-align: center; padding: 20px; background-color: #FFF3E0; border-radius: 15px; margin-top: 20px;">
-            <h2 style="color: #E64A19;">測驗完成！</h2>
-            <h1 style="font-size: 50px; color: #BF360C;">{final_score} 分</h1>
+        <div class="word-card" style="border-left-color:#00E5FF;">
+            <h3>🎧 AUDIO_INPUT_CHECK</h3>
+            <p style="color:#888;">Which word matches the audio?</p>
+        </div>
+        """, unsafe_allow_html=True)
+        play_audio(target['amis'], filename_base=target['file'])
+        st.write("")
+        
+        cols = st.columns(3)
+        for idx, opt in enumerate(data['options']):
+            with cols[idx]:
+                if st.button(f"{opt['zh']}", key=f"q1_{idx}"):
+                    if opt['amis'] == target['amis']:
+                        st.balloons()
+                        st.success("ACCESS GRANTED (答對了)")
+                        time.sleep(1)
+                        st.session_state.score += 1
+                        st.session_state.current_q += 1
+                        st.rerun()
+                    else:
+                        st.error("ACCESS DENIED (再試一次)")
+
+    elif st.session_state.current_q == 1:
+        data = st.session_state.q2_data
+        st.markdown(f"""
+        <div class="word-card" style="border-left-color:#FFFF00;">
+            <h3>🧩 DATA_RECOVERY</h3>
+            <h2 style="color:#FFF;">{data['q'].replace('______', '<span style="color:#FFFF00; text-shadow:0 0 10px #FFFF00;">[ MISSING ]</span>')}</h2>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("🔄 再玩一次", type="primary"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            safe_rerun()
+        cols = st.columns(3)
+        for i, opt in enumerate(data['opts']):
+            with cols[i]:
+                if st.button(opt, key=f"q2_{i}"):
+                    if opt.lower() in data['ans'].lower() or data['ans'].lower() in opt.lower():
+                        st.balloons()
+                        st.success("DATA RESTORED (太棒了)")
+                        time.sleep(1)
+                        st.session_state.score += 1
+                        st.session_state.current_q += 1
+                        st.rerun()
+                    else:
+                        st.error("ERROR (不對喔)")
+
+    elif st.session_state.current_q == 2:
+        data = st.session_state.q3_data
+        target = data['target']
+        st.markdown(f"""
+        <div class="word-card" style="border-left-color:#FF00FF;">
+            <h3>🗣️ TRANSLATION_PROTOCOL</h3>
+            <h3 style="color:#FF00FF;">{target['amis']}</h3>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        play_audio(target['amis'], filename_base=target['file'])
+        
+        for opt in data['options']:
+            if st.button(opt):
+                if opt == target['zh']:
+                    st.balloons()
+                    st.success("SYNC COMPLETE (全對)")
+                    time.sleep(1)
+                    st.session_state.score += 1
+                    st.session_state.current_q += 1
+                    st.rerun()
+                else:
+                    st.error("SYNC FAILED (再想一下)")
+
+    else:
+        st.markdown(f"""
+        <div class="word-card" style="border-left: 4px solid #00E5FF; background: rgba(0, 229, 255, 0.1);">
+            <h1 style='color: #00E5FF; font-family:Orbitron;'>MISSION ACCOMPLISHED</h1>
+            <p style='color:#FFF;'>SCORE: {st.session_state.score} / 3</p>
+            <div style='font-size: 60px;'>🚀</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("REBOOT SYSTEM (重新開始)"):
+            init_quiz()
+            st.rerun()
+
+# --- 4. 診斷工具 ---
+def show_debug_info():
+    st.markdown("---")
+    st.markdown("""
+    <div style="text-align:center; color:#444; font-size:12px; font-family:Orbitron;">
+        SYSTEM VER 2.0 | DEVELOPED BY AI | POWERED BY STREAMLIT
+    </div>
+    """, unsafe_allow_html=True)
+
+# --- 主程式 ---
+def main():
+    st.markdown("""
+    <div class="header-container">
+        <h1 class="main-title">KAOLAHAN</h1>
+        <div class="sub-title">所喜歡的</div>
+        <div class="teacher-tag">INSTRUCTOR: 高春美 | PROVIDER: 高春美</div>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["📂 DATABASE (學習)", "⚔️ SIMULATION (測驗)"])
+    
+    with tab1:
+        show_learning_mode()
+    with tab2:
+        show_quiz_mode()
+        
+    show_debug_info()
+
+if __name__ == "__main__":
+    main()
