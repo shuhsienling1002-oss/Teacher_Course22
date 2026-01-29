@@ -1,222 +1,275 @@
 import streamlit as st
 import time
-import os
-from gtts import gTTS
+import random
 from io import BytesIO
 
-# --- 0. 系統配置 ---
-st.set_page_config(page_title="Unit 3: O loma' no mako", page_icon="🏠", layout="centered")
-
-# CSS 優化 (卡片與按鈕樣式)
-st.markdown("""
-    <style>
-    .stButton>button {
-        width: 100%;
-        border-radius: 20px;
-        font-size: 24px;
-        background-color: #FFD700;
-        color: #333;
-        border: none;
-        padding: 10px;
-        margin-top: 10px;
-    }
-    .stButton>button:hover {
-        background-color: #FFC107;
-        transform: scale(1.02);
-    }
-    .big-font {
-        font-size: 40px !important;
-        font-weight: bold;
-        color: #2E86C1;
-        text-align: center;
-        margin-bottom: 5px;
-    }
-    .med-font {
-        font-size: 22px !important;
-        color: #555;
-        text-align: center;
-        margin-bottom: 10px;
-    }
-    .card {
-        background-color: #f0f2f6;
-        padding: 20px;
-        border-radius: 15px;
-        text-align: center;
-        margin-bottom: 20px;
-        box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- 1. 數據資料庫 (Unit 3 專屬) ---
-
-# 單字：家庭成員
-VOCABULARY = {
-    "Wama":     {"zh": "爸爸", "emoji": "👨", "file": "u3_wama"},
-    "Wina":     {"zh": "媽媽", "emoji": "👩", "file": "u3_wina"},
-    "Akong":    {"zh": "阿公", "emoji": "👴", "file": "u3_akong"},
-    "Ama":      {"zh": "阿嬤", "emoji": "👵", "file": "u3_ama"},
-    "Kaka":     {"zh": "哥哥/姊姊", "emoji": "👦", "file": "u3_kaka"},
-    "Safa":     {"zh": "弟弟/妹妹", "emoji": "👶", "file": "u3_safa"}
-}
-
-# 句型：結合動作 (Unit 2) + 人物 (Unit 3)
-SENTENCES = [
-    {"amis": "Romadiw ci Wina.", "zh": "媽媽在唱歌。", "file": "u3_s_mom_sings"},
-    {"amis": "Mafoti' ci Akong.", "zh": "阿公在睡覺。", "file": "u3_s_grandpa_sleeps"},
-    {"amis": "Cima ko romadiway?", "zh": "誰在唱歌？", "file": "u3_q_who_sings"}
-]
-
-# --- 1.5 智慧語音核心 ---
-def play_audio(text, filename_base=None):
-    # 優先檢查是否有預錄的音檔
-    if filename_base:
-        path_m4a = f"audio/{filename_base}.m4a"
-        if os.path.exists(path_m4a):
-            st.audio(path_m4a, format='audio/mp4')
-            return
-        path_mp3 = f"audio/{filename_base}.mp3"
-        if os.path.exists(path_mp3):
-            st.audio(path_mp3, format='audio/mp3')
-            return
-
-    # 如果沒有檔案，使用 Google小姐 (印尼語腔調模擬)
+# --- 1. 核心相容性修復 ---
+def safe_rerun():
+    """自動判斷並執行重整"""
     try:
+        st.rerun()
+    except AttributeError:
+        try:
+            st.experimental_rerun()
+        except:
+            st.stop()
+
+def safe_play_audio(text):
+    """語音播放安全模式"""
+    try:
+        from gtts import gTTS
+        # 使用印尼語 (id) 發音作為阿美語的近似替代
         tts = gTTS(text=text, lang='id')
         fp = BytesIO()
         tts.write_to_fp(fp)
-        fp.seek(0)
         st.audio(fp, format='audio/mp3')
-    except:
-        st.caption("🔇 (無聲)")
+    except Exception as e:
+        st.caption(f"🔇 (語音生成暫時無法使用)")
 
-# --- 2. 狀態管理 ---
-if 'score' not in st.session_state:
+# --- 0. 系統配置 ---
+st.set_page_config(
+    page_title="Unit: Kaolahan", 
+    page_icon="🍲", 
+    layout="centered"
+)
+
+# --- CSS 美化 (豐收暖橘風格) ---
+st.markdown("""
+    <style>
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    .source-tag { font-size: 12px; color: #aaa; text-align: right; font-style: italic; }
+    
+    /* 單字卡 - 暖色系 */
+    .word-card {
+        background: linear-gradient(135deg, #FFF3E0 0%, #ffffff 100%);
+        padding: 20px;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        text-align: center;
+        margin-bottom: 15px;
+        border-bottom: 4px solid #FF7043; /* 暖橘色邊框 */
+    }
+    .emoji-icon { font-size: 48px; margin-bottom: 10px; }
+    .amis-text { font-size: 24px; font-weight: bold; color: #E64A19; } /* 深橘紅文字 */
+    .chinese-text { font-size: 16px; color: #795548; } /* 褐色副標 */
+    
+    /* 句子框 */
+    .sentence-box {
+        background-color: #FFF8E1; /* 淺黃背景 */
+        border-left: 5px solid #FFA000; /* 金黃色飾條 */
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 0 10px 10px 0;
+    }
+
+    /* 按鈕 */
+    .stButton>button {
+        width: 100%; border-radius: 12px; font-size: 20px; font-weight: 600;
+        background-color: #FFCCBC; color: #BF360C; border: 2px solid #FF7043; padding: 12px;
+    }
+    .stButton>button:hover { background-color: #FFAB91; border-color: #E64A19; }
+    
+    /* 進度條顏色 */
+    .stProgress > div > div > div > div { background-color: #FF7043; }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 2. 資料庫 (Kaolahan 課程內容) ---
+# 講師：高春美 | 教材提供者：高春美
+
+vocab_data = [
+    {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字"},
+    {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材"},
+    {"amis": "Haca", "chi": "也 / 亦", "icon": "➕", "source": "連接詞"},
+    {"amis": "Maemin", "chi": "全部 / 所有的", "icon": "💯", "source": "數量"},
+    {"amis": "Sikaen", "chi": "菜餚 / 配菜", "icon": "🍱", "source": "食物"},
+    {"amis": "Dateng", "chi": "菜 / 野菜", "icon": "🥬", "source": "食物"},
+    {"amis": "Kohaw", "chi": "湯", "icon": "🍲", "source": "食物"},
+    {"amis": "Mato’asay", "chi": "老人 / 長輩", "icon": "👵", "source": "人物"},
+]
+
+sentences = [
+    {"amis": "O maan ko kaolahan iso a sikaen?", "chi": "你喜歡什麼樣的菜呢？", "icon": "❓", "source": "問句"},
+    {"amis": "O foting ko kaolahan ako a dateng.", "chi": "魚是我最喜歡的菜。", "icon": "🐟", "source": "回答"},
+    {"amis": "Kaolahan no wama konini a kohaw.", "chi": "這碗是爸爸最喜歡的湯。", "icon": "👨", "source": "描述"},
+    {"amis": "Tadakaolahan no mato’asay kona dateng.", "chi": "這些是老人家最喜歡的菜。", "icon": "👵", "source": "描述"},
+    {"amis": "Kaolahan ako a maemin konini a sikaen.", "chi": "這些都是我最喜歡的菜餚。", "icon": "😋", "source": "感嘆"},
+    {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化"},
+]
+
+# --- 3. 隨機題庫 (根據新內容設計) ---
+raw_quiz_pool = [
+    {
+        "q": "「麵包樹果」的阿美語怎麼說？",
+        "audio": "Facidol",
+        "options": ["Facidol", "Foting", "Dateng"],
+        "ans": "Facidol",
+        "hint": "阿美族人最愛的食材之一"
+    },
+    {
+        "q": "O maan ko kaolahan iso a sikaen?",
+        "audio": "O maan ko kaolahan iso a sikaen?",
+        "options": ["你喜歡什麼樣的菜呢？", "這是誰煮的菜？", "你要去哪裡買菜？"],
+        "ans": "你喜歡什麼樣的菜呢？",
+        "hint": "Maan 是「什麼」，Kaolahan 是「喜歡的」"
+    },
+    {
+        "q": "Kaolahan no wama konini a kohaw.",
+        "audio": "Kaolahan no wama konini a kohaw.",
+        "options": ["這碗是爸爸最喜歡的湯", "這碗是媽媽煮的湯", "我不喜歡喝湯"],
+        "ans": "這碗是爸爸最喜歡的湯",
+        "hint": "Wama 是爸爸，Kohaw 是湯"
+    },
+    {
+        "q": "單字測驗：Maemin",
+        "audio": "Maemin",
+        "options": ["全部", "一點點", "沒有"],
+        "ans": "全部",
+        "hint": "Kaolahan ako a maemin (這些「全部」都是我喜歡的)"
+    },
+    {
+        "q": "單字測驗：Mato’asay",
+        "audio": "Mato’asay",
+        "options": ["老人/長輩", "小孩", "年輕人"],
+        "ans": "老人/長輩",
+        "hint": "Tadakaolahan no mato’asay (老人家最喜歡的)"
+    },
+    {
+        "q": "O foting ko kaolahan ako a dateng.",
+        "audio": "O foting ko kaolahan ako a dateng.",
+        "options": ["魚是我最喜歡的菜", "我喜歡吃麵包樹果", "這道菜很鹹"],
+        "ans": "魚是我最喜歡的菜",
+        "hint": "Foting 是魚"
+    },
+    {
+        "q": "「湯」的阿美語是？",
+        "audio": "Kohaw",
+        "options": ["Kohaw", "Dateng", "Sapaiyo"],
+        "ans": "Kohaw",
+        "hint": "喝熱熱的 Kohaw"
+    }
+]
+
+# --- 4. 狀態初始化 (洗牌邏輯) ---
+if 'init' not in st.session_state:
     st.session_state.score = 0
-if 'current_q' not in st.session_state:
-    st.session_state.current_q = 0
+    st.session_state.current_q_idx = 0
+    st.session_state.quiz_id = str(random.randint(1000, 9999))
+    
+    # 抽題與洗牌 (每次隨機抽 4 題)
+    selected_questions = random.sample(raw_quiz_pool, 4)
+    final_questions = []
+    for q in selected_questions:
+        q_copy = q.copy()
+        shuffled_opts = random.sample(q['options'], len(q['options']))
+        q_copy['shuffled_options'] = shuffled_opts
+        final_questions.append(q_copy)
+        
+    st.session_state.quiz_questions = final_questions
+    st.session_state.init = True
 
-# --- 3. 學習模式 (Learning Mode) ---
-def show_learning_mode():
-    st.markdown("<h2 style='text-align: center;'>Sakatoolo: O loma' no mako</h2>", unsafe_allow_html=True)
-    st.markdown("<h4 style='text-align: center; color: gray;'>我的家庭 🏠</h4>", unsafe_allow_html=True)
-    
-    # 顯示單字卡
+# --- 5. 主介面 ---
+st.markdown("<h1 style='text-align: center; color: #BF360C;'>Unit: Kaolahan</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #8D6E63;'>所喜歡的 | 講師：高春美</p>", unsafe_allow_html=True)
+
+tab1, tab2 = st.tabs(["📖 詞彙與句型", "🎲 隨機挑戰"])
+
+# === Tab 1: 學習模式 ===
+with tab1:
+    st.subheader("📝 核心單字")
     col1, col2 = st.columns(2)
-    words = list(VOCABULARY.items())
-    
-    for idx, (amis, data) in enumerate(words):
-        with (col1 if idx % 2 == 0 else col2):
-            with st.container():
-                st.markdown(f"""
-                <div class="card">
-                    <div style="font-size: 60px;">{data['emoji']}</div>
-                    <div class="big-font">{amis}</div>
-                    <div class="med-font">{data['zh']}</div>
-                </div>
-                """, unsafe_allow_html=True)
-                play_audio(amis, filename_base=data.get('file'))
+    for i, word in enumerate(vocab_data):
+        with (col1 if i % 2 == 0 else col2):
+            st.markdown(f"""
+            <div class="word-card">
+                <div class="emoji-icon">{word['icon']}</div>
+                <div class="amis-text">{word['amis']}</div>
+                <div class="chinese-text">{word['chi']}</div>
+                <div class="source-tag">{word['source']}</div>
+            </div>
+            """, unsafe_allow_html=True)
+            if st.button(f"🔊 播放", key=f"btn_vocab_{i}"):
+                safe_play_audio(word['amis'])
 
     st.markdown("---")
-    st.markdown("### 🗣️ 句型練習：誰在做什麼？")
-    
-    # 句子 1
-    s1 = SENTENCES[0]
-    st.info(f"🔹 {s1['amis']}")
-    st.caption(f"({s1['zh']})")
-    play_audio(s1['amis'], filename_base=s1.get('file'))
-    
-    # 句子 2
-    s2 = SENTENCES[1]
-    st.info(f"🔹 {s2['amis']}")
-    st.caption(f"({s2['zh']})")
-    play_audio(s2['amis'], filename_base=s2.get('file'))
-    
-    # 問答
-    st.markdown("#### ❓ 問答練習")
-    q = SENTENCES[2]
-    st.success(f"Q: {q['amis']} ({q['zh']})")
-    play_audio(q['amis'], filename_base=q.get('file'))
-    
-    st.warning("A: Ci Wina. (是媽媽。)")
-    play_audio("Ci Wina", filename_base="u3_wina")
+    st.subheader("🗣️ 實用句型")
+    for i, sent in enumerate(sentences):
+        st.markdown(f"""
+        <div class="sentence-box">
+            <div style="font-size: 20px; color: #E65100; font-weight: bold;">{sent['icon']} {sent['amis']}</div>
+            <div style="font-size: 16px; color: #5D4037; margin-top: 5px;">{sent['chi']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button(f"▶️ 朗讀句子", key=f"btn_sent_{i}"):
+            safe_play_audio(sent['amis'])
 
-# --- 4. 測驗模式 (Quiz Mode) ---
-def show_quiz_mode():
-    st.markdown("<h2 style='text-align: center;'>🎮 家庭小偵探</h2>", unsafe_allow_html=True)
-    progress = st.progress(st.session_state.current_q / 3)
+# === Tab 2: 測驗模式 ===
+with tab2:
+    st.subheader("🧠 隨機測驗 (共4題)")
     
-    # 第一關：單字聽力
-    if st.session_state.current_q == 0:
-        st.markdown("### 第一關：這是誰？")
-        st.write("請聽聲音：")
-        play_audio("Akong", filename_base="u3_akong")
+    # 取得當前題目
+    current_idx = st.session_state.current_q_idx
+    questions = st.session_state.quiz_questions
+    
+    if current_idx < len(questions):
+        q_data = questions[current_idx]
         
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("👴 阿公"):
-                st.balloons()
-                st.success("答對了！ Akong!")
-                time.sleep(1)
-                st.session_state.score += 100
-                st.session_state.current_q += 1
-                st.rerun()
-        with c2:
-            if st.button("👵 阿嬤"): st.error("那是 Ama 喔！")
-
-    # 第二關：句子理解
-    elif st.session_state.current_q == 1:
-        st.markdown("### 第二關：誰在唱歌？")
-        st.markdown("#### 請聽句子：")
-        play_audio("Romadiw ci Wina.", filename_base="u3_s_mom_sings")
+        # 進度條
+        progress = (current_idx / len(questions))
+        st.progress(progress)
         
-        st.write("請問句子裡是誰在唱歌？")
-        c1, c2 = st.columns(2)
-        with c1:
-            if st.button("👩 媽媽"):
-                st.snow()
-                st.success("沒錯！ Romadiw ci Wina.")
-                time.sleep(1)
-                st.session_state.score += 100
-                st.session_state.current_q += 1
-                st.rerun()
-        with c2:
-            if st.button("👶 妹妹"): st.error("不對喔！")
-
-    # 第三關：問答
-    elif st.session_state.current_q == 2:
-        st.markdown("### 第三關：看圖回答")
-        st.markdown("#### Q: Cima ko mafoti'ay? (誰在睡覺？)")
-        play_audio("Cima ko mafoti'ay?", filename_base="u3_q_who_sleeps") # 模擬問句
+        st.markdown(f"### Q{current_idx + 1}: {q_data['q']}")
         
-        st.markdown("<div style='font-size:80px; text-align:center;'>👴💤</div>", unsafe_allow_html=True)
+        # 播放題目語音 (如果有)
+        if q_data['audio']:
+            if st.button("🔊 聽題目發音", key=f"quiz_audio_{current_idx}"):
+                safe_play_audio(q_data['audio'])
         
-        options = ["Ci Wama (是爸爸)", "Ci Akong (是阿公)", "Ci Safa (是弟弟)"]
-        choice = st.radio("請選擇：", options)
+        # 顯示選項
+        option_cols = st.columns(len(q_data['shuffled_options']))
         
-        if st.button("確定送出"):
-            if "Akong" in choice:
-                st.balloons()
-                st.success("太厲害了！全部答對！")
-                time.sleep(1)
-                st.session_state.score += 100
-                st.session_state.current_q += 1
-                st.rerun()
-            else:
-                st.error("再看一次圖片喔！")
-
+        # 檢查是否已經回答過 (用於顯示結果)
+        if f"answered_{current_idx}" not in st.session_state:
+            for idx, opt in enumerate(q_data['shuffled_options']):
+                if st.button(opt, key=f"opt_{current_idx}_{idx}"):
+                    if opt == q_data['ans']:
+                        st.session_state.score += 25
+                        st.success(f"🎉 正確！ {q_data['ans']}")
+                    else:
+                        st.error(f"❌ 答錯了，正確答案是：{q_data['ans']}")
+                        st.info(f"💡 提示：{q_data['hint']}")
+                    
+                    # 標記為已回答，延遲後進入下一題
+                    st.session_state[f"answered_{current_idx}"] = True
+                    time.sleep(1.5)
+                    st.session_state.current_q_idx += 1
+                    safe_rerun()
+        else:
+            st.info("載入下一題中...")
+            
     else:
-        st.markdown(f"<div style='text-align: center;'><h1>🏆 挑戰完成！</h1><h2>得分：{st.session_state.score}</h2></div>", unsafe_allow_html=True)
-        if st.button("再玩一次"):
-            st.session_state.current_q = 0
-            st.session_state.score = 0
-            st.rerun()
+        # 測驗結束
+        st.progress(1.0)
+        st.balloons()
+        final_score = st.session_state.score
+        
+        st.markdown(f"""
+        <div style="text-align: center; padding: 30px; background-color: #FFF3E0; border-radius: 20px;">
+            <h2 style="color: #E64A19;">測驗完成！</h2>
+            <h1 style="font-size: 60px; color: #BF360C;">{final_score} 分</h1>
+            <p>Kaolahan iso konini a app? (你喜歡這個App嗎？)</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        if st.button("🔄 再玩一次"):
+            # 清除狀態，重新開始
+            for key in list(st.session_state.keys()):
+                del st.session_state[key]
+            safe_rerun()
 
-# --- 5. 主程式入口 ---
-st.sidebar.title("Unit 3: O loma' 🏠")
-mode = st.sidebar.radio("選擇模式", ["📖 學習單詞", "🎮 練習挑戰"])
-
-if mode == "📖 學習單詞":
-    show_learning_mode()
-else:
-    show_quiz_mode()
+# --- Footer ---
+st.markdown("""
+    <div style="text-align: center; margin-top: 50px; color: #aaa; font-size: 12px;">
+        教材提供：高春美 | App Design based on Unit 18 Template
+    </div>
+""", unsafe_allow_html=True)
