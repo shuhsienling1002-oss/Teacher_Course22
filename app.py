@@ -3,17 +3,22 @@ import time
 import random
 import os
 
-# --- 1. 核心功能：播放本地音檔 ---
+# --- 1. 設定檔案路徑 ---
+# 這裡設定音檔存放的資料夾路徑
+AUDIO_FOLDER = os.path.join("Teacher_Course22", "audio")
+
 def play_audio(filename):
-    """播放本地 m4a 檔案，並處理路徑問題"""
-    # 嘗試直接路徑
-    if os.path.exists(filename):
-        with open(filename, "rb") as f:
+    """播放指定資料夾內的 m4a 檔案"""
+    # 組合完整路徑：Teacher_Course22/audio/檔名
+    full_path = os.path.join(AUDIO_FOLDER, filename)
+    
+    if os.path.exists(full_path):
+        with open(full_path, "rb") as f:
             audio_bytes = f.read()
         st.audio(audio_bytes, format='audio/mp4')
     else:
-        st.error(f"⚠️ 找不到檔案：{filename}")
-        st.caption("請確認檔案是否與 app.py 放在同一個資料夾中")
+        # 手機版顯示簡潔的錯誤提示
+        st.warning(f"⚠️ 找不到音檔 ({filename})")
 
 def safe_rerun():
     """自動判斷並執行重整"""
@@ -25,55 +30,70 @@ def safe_rerun():
         except:
             st.stop()
 
-# --- 0. 系統配置 ---
+# --- 0. 系統配置 (隱藏預設選單，適合手機) ---
 st.set_page_config(
-    page_title="Kaolahan 所喜歡的", 
+    page_title="Kaolahan", 
     page_icon="🍲", 
-    layout="centered"
+    layout="centered",
+    initial_sidebar_state="collapsed" # 預設收起側邊欄
 )
 
-# --- CSS 美化 (豐收暖橘風格) ---
+# --- CSS 美化 (豐收暖橘 - 手機版優化) ---
 st.markdown("""
     <style>
-    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
-    .source-tag { font-size: 12px; color: #aaa; text-align: right; font-style: italic; }
+    /* 隱藏 Streamlit 預設漢堡選單與 Footer，讓介面更像原生 App */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     
-    /* 單字卡 - 暖色系 */
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
+    
+    /* 單字卡 */
     .word-card {
         background: linear-gradient(135deg, #FFF3E0 0%, #ffffff 100%);
-        padding: 20px;
+        padding: 15px;
         border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         text-align: center;
-        margin-bottom: 15px;
-        border-bottom: 4px solid #FF7043;
+        margin-bottom: 10px;
+        border-bottom: 3px solid #FF7043;
     }
-    .emoji-icon { font-size: 48px; margin-bottom: 10px; }
-    .amis-text { font-size: 24px; font-weight: bold; color: #E64A19; }
-    .chinese-text { font-size: 16px; color: #795548; }
+    .emoji-icon { font-size: 40px; margin-bottom: 5px; }
+    .amis-text { font-size: 22px; font-weight: bold; color: #E64A19; }
+    .chinese-text { font-size: 15px; color: #795548; }
+    .source-tag { font-size: 11px; color: #aaa; margin-top: 5px; }
     
     /* 句子框 */
     .sentence-box {
         background-color: #FFF8E1;
-        border-left: 5px solid #FFA000;
-        padding: 15px;
-        margin: 10px 0;
-        border-radius: 0 10px 10px 0;
+        border-left: 4px solid #FFA000;
+        padding: 12px;
+        margin: 8px 0;
+        border-radius: 0 8px 8px 0;
     }
 
-    /* 按鈕 */
+    /* 按鈕優化：更好按 */
     .stButton>button {
-        width: 100%; border-radius: 12px; font-size: 20px; font-weight: 600;
-        background-color: #FFCCBC; color: #BF360C; border: 2px solid #FF7043; padding: 12px;
+        width: 100%; 
+        border-radius: 10px; 
+        font-size: 18px; 
+        font-weight: 600;
+        background-color: #FFCCBC; 
+        color: #BF360C; 
+        border: 1px solid #FF7043; 
+        padding: 10px;
+        margin-top: 5px;
     }
-    .stButton>button:hover { background-color: #FFAB91; border-color: #E64A19; }
+    .stButton>button:hover { background-color: #FFAB91; }
     
-    /* 進度條顏色 */
-    .stProgress > div > div > div > div { background-color: #FF7043; }
+    /* 選項卡 (Tabs) 字體加大 */
+    button[data-baseweb="tab"] {
+        font-size: 18px !important;
+        font-weight: bold !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. 資料庫 (定義預期檔案) ---
+# --- 2. 資料庫 ---
 vocab_data = [
     {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字", "audio": "kaolahan.m4a"},
     {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材", "audio": "facidol.m4a"},
@@ -94,32 +114,7 @@ sentences = [
     {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化", "audio": "sentence_06.m4a"},
 ]
 
-# --- 3. 側邊欄：系統檢查面板 (Debug Panel) ---
-with st.sidebar:
-    st.header("🛠️ 系統檢查面板")
-    st.write("檢查錄音檔是否讀取成功...")
-    
-    # 檢查單字檔
-    st.subheader("單字檔狀態")
-    for item in vocab_data:
-        fname = item['audio']
-        if os.path.exists(fname):
-            st.success(f"✅ {fname}")
-        else:
-            st.error(f"❌ 缺少: {fname}")
-            
-    # 檢查句子檔
-    st.subheader("句子檔狀態")
-    for item in sentences:
-        fname = item['audio']
-        if os.path.exists(fname):
-            st.success(f"✅ {fname}")
-        else:
-            st.error(f"❌ 缺少: {fname}")
-            
-    st.info("💡 提示：所有 .m4a 檔案必須和 app.py 放在同一個資料夾內。")
-
-# --- 4. 隨機題庫 ---
+# --- 3. 隨機題庫 ---
 raw_quiz_pool = [
     {
         "q": "「麵包樹果」的阿美語怎麼說？",
@@ -172,11 +167,10 @@ raw_quiz_pool = [
     }
 ]
 
-# --- 5. 狀態初始化 ---
+# --- 4. 狀態初始化 ---
 if 'init' not in st.session_state:
     st.session_state.score = 0
     st.session_state.current_q_idx = 0
-    st.session_state.quiz_id = str(random.randint(1000, 9999))
     
     selected_questions = random.sample(raw_quiz_pool, 4)
     final_questions = []
@@ -189,45 +183,44 @@ if 'init' not in st.session_state:
     st.session_state.quiz_questions = final_questions
     st.session_state.init = True
 
-# --- 6. 主介面 ---
+# --- 5. 主介面 ---
 
-st.markdown("<h1 style='text-align: center; color: #BF360C;'>Kaolahan 所喜歡的</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #8D6E63;'>講師：高春美 | 教材提供者：高春美</p>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; color: #BF360C; margin-bottom: 0;'>Kaolahan 所喜歡的</h2>", unsafe_allow_html=True)
+st.markdown("<p style='text-align: center; color: #8D6E63; font-size: 14px;'>講師：高春美 | 教材提供者：高春美</p>", unsafe_allow_html=True)
 
+# 使用 Tabs 分頁，保持手機畫面乾淨
 tab1, tab2 = st.tabs(["📖 詞彙與句型", "🎲 隨機挑戰"])
 
 # === Tab 1: 學習模式 ===
 with tab1:
-    st.subheader("📝 核心單字")
-    col1, col2 = st.columns(2)
-    for i, word in enumerate(vocab_data):
-        with (col1 if i % 2 == 0 else col2):
-            st.markdown(f"""
-            <div class="word-card">
-                <div class="emoji-icon">{word['icon']}</div>
-                <div class="amis-text">{word['amis']}</div>
-                <div class="chinese-text">{word['chi']}</div>
-                <div class="source-tag">{word['source']}</div>
-            </div>
-            """, unsafe_allow_html=True)
-            if st.button(f"🔊 播放", key=f"btn_vocab_{i}"):
-                play_audio(word['audio'])
+    st.markdown("### 📝 核心單字")
+    # 手機版改為單欄顯示，避免太擠
+    for word in vocab_data:
+        st.markdown(f"""
+        <div class="word-card">
+            <div class="emoji-icon">{word['icon']}</div>
+            <div class="amis-text">{word['amis']}</div>
+            <div class="chinese-text">{word['chi']}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button(f"🔊 播放", key=f"btn_v_{word['amis']}"):
+            play_audio(word['audio'])
 
     st.markdown("---")
-    st.subheader("🗣️ 實用句型")
+    st.markdown("### 🗣️ 實用句型")
     for i, sent in enumerate(sentences):
         st.markdown(f"""
         <div class="sentence-box">
-            <div style="font-size: 20px; color: #E65100; font-weight: bold;">{sent['icon']} {sent['amis']}</div>
-            <div style="font-size: 16px; color: #5D4037; margin-top: 5px;">{sent['chi']}</div>
+            <div style="font-size: 18px; color: #E65100; font-weight: bold;">{sent['icon']} {sent['amis']}</div>
+            <div style="font-size: 15px; color: #5D4037; margin-top: 5px;">{sent['chi']}</div>
         </div>
         """, unsafe_allow_html=True)
-        if st.button(f"▶️ 朗讀句子", key=f"btn_sent_{i}"):
+        if st.button(f"▶️ 朗讀", key=f"btn_s_{i}"):
             play_audio(sent['audio'])
 
 # === Tab 2: 測驗模式 ===
 with tab2:
-    st.subheader("🧠 隨機測驗 (共4題)")
+    st.markdown("### 🧠 隨機測驗")
     
     current_idx = st.session_state.current_q_idx
     questions = st.session_state.quiz_questions
@@ -237,31 +230,29 @@ with tab2:
         progress = (current_idx / len(questions))
         st.progress(progress)
         
-        st.markdown(f"### Q{current_idx + 1}: {q_data['q']}")
+        st.markdown(f"**Q{current_idx + 1}: {q_data['q']}**")
         
-        # 播放題目語音
         if q_data.get('audio_file'):
-            if st.button("🔊 聽題目發音", key=f"quiz_audio_{current_idx}"):
+            if st.button("🔊 聽題目", key=f"quiz_audio_{current_idx}"):
                 play_audio(q_data['audio_file'])
         
-        option_cols = st.columns(len(q_data['shuffled_options']))
+        st.write(" ") # 空行
         
         if f"answered_{current_idx}" not in st.session_state:
             for idx, opt in enumerate(q_data['shuffled_options']):
                 if st.button(opt, key=f"opt_{current_idx}_{idx}"):
                     if opt == q_data['ans']:
                         st.session_state.score += 25
-                        st.success(f"🎉 正確！ {q_data['ans']}")
+                        st.success(f"🎉 正確！")
                     else:
-                        st.error(f"❌ 答錯了，正確答案是：{q_data['ans']}")
-                        st.info(f"💡 提示：{q_data['hint']}")
+                        st.error(f"❌ 錯了！答案是：{q_data['ans']}")
                     
                     st.session_state[f"answered_{current_idx}"] = True
                     time.sleep(1.5)
                     st.session_state.current_q_idx += 1
                     safe_rerun()
         else:
-            st.info("載入下一題中...")
+            st.info("下一題...")
             
     else:
         st.progress(1.0)
@@ -269,14 +260,13 @@ with tab2:
         final_score = st.session_state.score
         
         st.markdown(f"""
-        <div style="text-align: center; padding: 30px; background-color: #FFF3E0; border-radius: 20px;">
+        <div style="text-align: center; padding: 20px; background-color: #FFF3E0; border-radius: 15px; margin-top: 20px;">
             <h2 style="color: #E64A19;">測驗完成！</h2>
-            <h1 style="font-size: 60px; color: #BF360C;">{final_score} 分</h1>
-            <p>Kaolahan iso konini a app? (你喜歡這個App嗎？)</p>
+            <h1 style="font-size: 50px; color: #BF360C;">{final_score} 分</h1>
         </div>
         """, unsafe_allow_html=True)
         
-        if st.button("🔄 再玩一次"):
+        if st.button("🔄 再玩一次", type="primary"):
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             safe_rerun()
