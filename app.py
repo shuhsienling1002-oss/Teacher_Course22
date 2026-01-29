@@ -1,9 +1,19 @@
 import streamlit as st
 import time
 import random
-from io import BytesIO
+import os
 
-# --- 1. 核心相容性修復 ---
+# --- 1. 核心功能：播放本地音檔 ---
+def play_audio(filename):
+    """播放本地 m4a 檔案"""
+    if os.path.exists(filename):
+        # 讀取檔案並播放
+        with open(filename, "rb") as f:
+            audio_bytes = f.read()
+        st.audio(audio_bytes, format='audio/mp4')
+    else:
+        st.warning(f"⚠️ 尚未上傳錄音檔：{filename}")
+
 def safe_rerun():
     """自動判斷並執行重整"""
     try:
@@ -14,18 +24,6 @@ def safe_rerun():
         except:
             st.stop()
 
-def safe_play_audio(text):
-    """語音播放安全模式"""
-    try:
-        from gtts import gTTS
-        # 使用印尼語 (id) 發音作為阿美語的近似替代
-        tts = gTTS(text=text, lang='id')
-        fp = BytesIO()
-        tts.write_to_fp(fp)
-        st.audio(fp, format='audio/mp3')
-    except Exception as e:
-        st.caption(f"🔇 (語音生成暫時無法使用)")
-
 # --- 0. 系統配置 ---
 st.set_page_config(
     page_title="Kaolahan 所喜歡的", 
@@ -33,7 +31,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# --- CSS 美化 (豐收暖橘風格 - 結構維持原版) ---
+# --- CSS 美化 (豐收暖橘風格) ---
 st.markdown("""
     <style>
     body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
@@ -47,16 +45,16 @@ st.markdown("""
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         text-align: center;
         margin-bottom: 15px;
-        border-bottom: 4px solid #FF7043; /* 暖橘色邊框 */
+        border-bottom: 4px solid #FF7043;
     }
     .emoji-icon { font-size: 48px; margin-bottom: 10px; }
-    .amis-text { font-size: 24px; font-weight: bold; color: #E64A19; } /* 深橘紅文字 */
-    .chinese-text { font-size: 16px; color: #795548; } /* 褐色副標 */
+    .amis-text { font-size: 24px; font-weight: bold; color: #E64A19; }
+    .chinese-text { font-size: 16px; color: #795548; }
     
     /* 句子框 */
     .sentence-box {
-        background-color: #FFF8E1; /* 淺黃背景 */
-        border-left: 5px solid #FFA000; /* 金黃色飾條 */
+        background-color: #FFF8E1;
+        border-left: 5px solid #FFA000;
         padding: 15px;
         margin: 10px 0;
         border-radius: 0 10px 10px 0;
@@ -74,74 +72,74 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. 資料庫 (Kaolahan 課程內容) ---
+# --- 2. 資料庫 (已對應 m4a 檔名) ---
 vocab_data = [
-    {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字"},
-    {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材"},
-    {"amis": "Haca", "chi": "也 / 亦", "icon": "➕", "source": "連接詞"},
-    {"amis": "Maemin", "chi": "全部 / 所有的", "icon": "💯", "source": "數量"},
-    {"amis": "Sikaen", "chi": "菜餚 / 配菜", "icon": "🍱", "source": "食物"},
-    {"amis": "Dateng", "chi": "菜 / 野菜", "icon": "🥬", "source": "食物"},
-    {"amis": "Kohaw", "chi": "湯", "icon": "🍲", "source": "食物"},
-    {"amis": "Mato’asay", "chi": "老人 / 長輩", "icon": "👵", "source": "人物"},
+    {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字", "audio": "kaolahan.m4a"},
+    {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材", "audio": "facidol.m4a"},
+    {"amis": "Haca", "chi": "也 / 亦", "icon": "➕", "source": "連接詞", "audio": "haca.m4a"},
+    {"amis": "Maemin", "chi": "全部 / 所有的", "icon": "💯", "source": "數量", "audio": "maemin.m4a"},
+    {"amis": "Sikaen", "chi": "菜餚 / 配菜", "icon": "🍱", "source": "食物", "audio": "sikaen.m4a"},
+    {"amis": "Dateng", "chi": "菜 / 野菜", "icon": "🥬", "source": "食物", "audio": "dateng.m4a"},
+    {"amis": "Kohaw", "chi": "湯", "icon": "🍲", "source": "食物", "audio": "kohaw.m4a"},
+    {"amis": "Mato’asay", "chi": "老人 / 長輩", "icon": "👵", "source": "人物", "audio": "matoasay.m4a"},
 ]
 
 sentences = [
-    {"amis": "O maan ko kaolahan iso a sikaen?", "chi": "你喜歡什麼樣的菜呢？", "icon": "❓", "source": "問句"},
-    {"amis": "O foting ko kaolahan ako a dateng.", "chi": "魚是我最喜歡的菜。", "icon": "🐟", "source": "回答"},
-    {"amis": "Kaolahan no wama konini a kohaw.", "chi": "這碗是爸爸最喜歡的湯。", "icon": "👨", "source": "描述"},
-    {"amis": "Tadakaolahan no mato’asay kona dateng.", "chi": "這些是老人家最喜歡的菜。", "icon": "👵", "source": "描述"},
-    {"amis": "Kaolahan ako a maemin konini a sikaen.", "chi": "這些都是我最喜歡的菜餚。", "icon": "😋", "source": "感嘆"},
-    {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化"},
+    {"amis": "O maan ko kaolahan iso a sikaen?", "chi": "你喜歡什麼樣的菜呢？", "icon": "❓", "source": "問句", "audio": "sentence_01.m4a"},
+    {"amis": "O foting ko kaolahan ako a dateng.", "chi": "魚是我最喜歡的菜。", "icon": "🐟", "source": "回答", "audio": "sentence_02.m4a"},
+    {"amis": "Kaolahan no wama konini a kohaw.", "chi": "這碗是爸爸最喜歡的湯。", "icon": "👨", "source": "描述", "audio": "sentence_03.m4a"},
+    {"amis": "Tadakaolahan no mato’asay kona dateng.", "chi": "這些是老人家最喜歡的菜。", "icon": "👵", "source": "描述", "audio": "sentence_04.m4a"},
+    {"amis": "Kaolahan ako a maemin konini a sikaen.", "chi": "這些都是我最喜歡的菜餚。", "icon": "😋", "source": "感嘆", "audio": "sentence_05.m4a"},
+    {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化", "audio": "sentence_06.m4a"},
 ]
 
-# --- 3. 隨機題庫 ---
+# --- 3. 隨機題庫 (已連結錄音檔) ---
 raw_quiz_pool = [
     {
         "q": "「麵包樹果」的阿美語怎麼說？",
-        "audio": "Facidol",
+        "audio_file": "facidol.m4a",
         "options": ["Facidol", "Foting", "Dateng"],
         "ans": "Facidol",
         "hint": "阿美族人最愛的食材之一"
     },
     {
         "q": "O maan ko kaolahan iso a sikaen?",
-        "audio": "O maan ko kaolahan iso a sikaen?",
+        "audio_file": "sentence_01.m4a",
         "options": ["你喜歡什麼樣的菜呢？", "這是誰煮的菜？", "你要去哪裡買菜？"],
         "ans": "你喜歡什麼樣的菜呢？",
         "hint": "Maan 是「什麼」，Kaolahan 是「喜歡的」"
     },
     {
         "q": "Kaolahan no wama konini a kohaw.",
-        "audio": "Kaolahan no wama konini a kohaw.",
+        "audio_file": "sentence_03.m4a",
         "options": ["這碗是爸爸最喜歡的湯", "這碗是媽媽煮的湯", "我不喜歡喝湯"],
         "ans": "這碗是爸爸最喜歡的湯",
         "hint": "Wama 是爸爸，Kohaw 是湯"
     },
     {
         "q": "單字測驗：Maemin",
-        "audio": "Maemin",
+        "audio_file": "maemin.m4a",
         "options": ["全部", "一點點", "沒有"],
         "ans": "全部",
         "hint": "Kaolahan ako a maemin (這些「全部」都是我喜歡的)"
     },
     {
         "q": "單字測驗：Mato’asay",
-        "audio": "Mato’asay",
+        "audio_file": "matoasay.m4a",
         "options": ["老人/長輩", "小孩", "年輕人"],
         "ans": "老人/長輩",
         "hint": "Tadakaolahan no mato’asay (老人家最喜歡的)"
     },
     {
         "q": "O foting ko kaolahan ako a dateng.",
-        "audio": "O foting ko kaolahan ako a dateng.",
+        "audio_file": "sentence_02.m4a",
         "options": ["魚是我最喜歡的菜", "我喜歡吃麵包樹果", "這道菜很鹹"],
         "ans": "魚是我最喜歡的菜",
         "hint": "Foting 是魚"
     },
     {
         "q": "「湯」的阿美語是？",
-        "audio": "Kohaw",
+        "audio_file": "kohaw.m4a",
         "options": ["Kohaw", "Dateng", "Sapaiyo"],
         "ans": "Kohaw",
         "hint": "喝熱熱的 Kohaw"
@@ -165,12 +163,10 @@ if 'init' not in st.session_state:
     st.session_state.quiz_questions = final_questions
     st.session_state.init = True
 
-# --- 5. 主介面 (Layout 與 Unit 18 完全一致) ---
+# --- 5. 主介面 ---
 
-# 標題區塊：阿美語+中文 (對應 Unit 18: Adada)
+# 標題區塊
 st.markdown("<h1 style='text-align: center; color: #BF360C;'>Kaolahan 所喜歡的</h1>", unsafe_allow_html=True)
-
-# 副標題區塊：講師資訊 (對應 生病與身體狀態)
 st.markdown("<p style='text-align: center; color: #8D6E63;'>講師：高春美 | 教材提供者：高春美</p>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📖 詞彙與句型", "🎲 隨機挑戰"])
@@ -190,7 +186,7 @@ with tab1:
             </div>
             """, unsafe_allow_html=True)
             if st.button(f"🔊 播放", key=f"btn_vocab_{i}"):
-                safe_play_audio(word['amis'])
+                play_audio(word['audio'])
 
     st.markdown("---")
     st.subheader("🗣️ 實用句型")
@@ -202,7 +198,7 @@ with tab1:
         </div>
         """, unsafe_allow_html=True)
         if st.button(f"▶️ 朗讀句子", key=f"btn_sent_{i}"):
-            safe_play_audio(sent['amis'])
+            play_audio(sent['audio'])
 
 # === Tab 2: 測驗模式 ===
 with tab2:
@@ -218,9 +214,10 @@ with tab2:
         
         st.markdown(f"### Q{current_idx + 1}: {q_data['q']}")
         
-        if q_data['audio']:
+        # 播放題目語音
+        if q_data.get('audio_file'):
             if st.button("🔊 聽題目發音", key=f"quiz_audio_{current_idx}"):
-                safe_play_audio(q_data['audio'])
+                play_audio(q_data['audio_file'])
         
         option_cols = st.columns(len(q_data['shuffled_options']))
         
