@@ -28,12 +28,12 @@ def safe_play_audio(text):
 
 # --- 0. 系統配置 ---
 st.set_page_config(
-    page_title="Unit: Kaolahan", 
+    page_title="Kaolahan 所喜歡的", 
     page_icon="🍲", 
     layout="centered"
 )
 
-# --- CSS 美化 (豐收暖橘風格) ---
+# --- CSS 美化 (豐收暖橘風格 - 結構維持原版) ---
 st.markdown("""
     <style>
     body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; }
@@ -75,8 +75,6 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # --- 2. 資料庫 (Kaolahan 課程內容) ---
-# 講師：高春美 | 教材提供者：高春美
-
 vocab_data = [
     {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字"},
     {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材"},
@@ -97,7 +95,7 @@ sentences = [
     {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化"},
 ]
 
-# --- 3. 隨機題庫 (根據新內容設計) ---
+# --- 3. 隨機題庫 ---
 raw_quiz_pool = [
     {
         "q": "「麵包樹果」的阿美語怎麼說？",
@@ -150,13 +148,12 @@ raw_quiz_pool = [
     }
 ]
 
-# --- 4. 狀態初始化 (洗牌邏輯) ---
+# --- 4. 狀態初始化 ---
 if 'init' not in st.session_state:
     st.session_state.score = 0
     st.session_state.current_q_idx = 0
     st.session_state.quiz_id = str(random.randint(1000, 9999))
     
-    # 抽題與洗牌 (每次隨機抽 4 題)
     selected_questions = random.sample(raw_quiz_pool, 4)
     final_questions = []
     for q in selected_questions:
@@ -168,9 +165,13 @@ if 'init' not in st.session_state:
     st.session_state.quiz_questions = final_questions
     st.session_state.init = True
 
-# --- 5. 主介面 ---
-st.markdown("<h1 style='text-align: center; color: #BF360C;'>Unit: Kaolahan</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align: center; color: #8D6E63;'>所喜歡的 | 講師：高春美</p>", unsafe_allow_html=True)
+# --- 5. 主介面 (Layout 與 Unit 18 完全一致) ---
+
+# 標題區塊：阿美語+中文 (對應 Unit 18: Adada)
+st.markdown("<h1 style='text-align: center; color: #BF360C;'>Kaolahan 所喜歡的</h1>", unsafe_allow_html=True)
+
+# 副標題區塊：講師資訊 (對應 生病與身體狀態)
+st.markdown("<p style='text-align: center; color: #8D6E63;'>講師：高春美 | 教材提供者：高春美</p>", unsafe_allow_html=True)
 
 tab1, tab2 = st.tabs(["📖 詞彙與句型", "🎲 隨機挑戰"])
 
@@ -207,28 +208,22 @@ with tab1:
 with tab2:
     st.subheader("🧠 隨機測驗 (共4題)")
     
-    # 取得當前題目
     current_idx = st.session_state.current_q_idx
     questions = st.session_state.quiz_questions
     
     if current_idx < len(questions):
         q_data = questions[current_idx]
-        
-        # 進度條
         progress = (current_idx / len(questions))
         st.progress(progress)
         
         st.markdown(f"### Q{current_idx + 1}: {q_data['q']}")
         
-        # 播放題目語音 (如果有)
         if q_data['audio']:
             if st.button("🔊 聽題目發音", key=f"quiz_audio_{current_idx}"):
                 safe_play_audio(q_data['audio'])
         
-        # 顯示選項
         option_cols = st.columns(len(q_data['shuffled_options']))
         
-        # 檢查是否已經回答過 (用於顯示結果)
         if f"answered_{current_idx}" not in st.session_state:
             for idx, opt in enumerate(q_data['shuffled_options']):
                 if st.button(opt, key=f"opt_{current_idx}_{idx}"):
@@ -239,7 +234,6 @@ with tab2:
                         st.error(f"❌ 答錯了，正確答案是：{q_data['ans']}")
                         st.info(f"💡 提示：{q_data['hint']}")
                     
-                    # 標記為已回答，延遲後進入下一題
                     st.session_state[f"answered_{current_idx}"] = True
                     time.sleep(1.5)
                     st.session_state.current_q_idx += 1
@@ -248,7 +242,6 @@ with tab2:
             st.info("載入下一題中...")
             
     else:
-        # 測驗結束
         st.progress(1.0)
         st.balloons()
         final_score = st.session_state.score
@@ -262,14 +255,6 @@ with tab2:
         """, unsafe_allow_html=True)
         
         if st.button("🔄 再玩一次"):
-            # 清除狀態，重新開始
             for key in list(st.session_state.keys()):
                 del st.session_state[key]
             safe_rerun()
-
-# --- Footer ---
-st.markdown("""
-    <div style="text-align: center; margin-top: 50px; color: #aaa; font-size: 12px;">
-        教材提供：高春美 | App Design based on Unit 18 Template
-    </div>
-""", unsafe_allow_html=True)
