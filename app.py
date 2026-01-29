@@ -5,14 +5,15 @@ import os
 
 # --- 1. 核心功能：播放本地音檔 ---
 def play_audio(filename):
-    """播放本地 m4a 檔案"""
+    """播放本地 m4a 檔案，並處理路徑問題"""
+    # 嘗試直接路徑
     if os.path.exists(filename):
-        # 讀取檔案並播放
         with open(filename, "rb") as f:
             audio_bytes = f.read()
         st.audio(audio_bytes, format='audio/mp4')
     else:
-        st.warning(f"⚠️ 尚未上傳錄音檔：{filename}")
+        st.error(f"⚠️ 找不到檔案：{filename}")
+        st.caption("請確認檔案是否與 app.py 放在同一個資料夾中")
 
 def safe_rerun():
     """自動判斷並執行重整"""
@@ -72,7 +73,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. 資料庫 (已對應 m4a 檔名) ---
+# --- 2. 資料庫 (定義預期檔案) ---
 vocab_data = [
     {"amis": "Kaolahan", "chi": "所喜歡的", "icon": "❤️", "source": "核心單字", "audio": "kaolahan.m4a"},
     {"amis": "Facidol", "chi": "麵包樹果", "icon": "🍈", "source": "食材", "audio": "facidol.m4a"},
@@ -93,7 +94,32 @@ sentences = [
     {"amis": "O facidol i, o tadakaolahan haca no ’Amis.", "chi": "麵包樹果也是阿美族人最愛。", "icon": "🍈", "source": "文化", "audio": "sentence_06.m4a"},
 ]
 
-# --- 3. 隨機題庫 (已連結錄音檔) ---
+# --- 3. 側邊欄：系統檢查面板 (Debug Panel) ---
+with st.sidebar:
+    st.header("🛠️ 系統檢查面板")
+    st.write("檢查錄音檔是否讀取成功...")
+    
+    # 檢查單字檔
+    st.subheader("單字檔狀態")
+    for item in vocab_data:
+        fname = item['audio']
+        if os.path.exists(fname):
+            st.success(f"✅ {fname}")
+        else:
+            st.error(f"❌ 缺少: {fname}")
+            
+    # 檢查句子檔
+    st.subheader("句子檔狀態")
+    for item in sentences:
+        fname = item['audio']
+        if os.path.exists(fname):
+            st.success(f"✅ {fname}")
+        else:
+            st.error(f"❌ 缺少: {fname}")
+            
+    st.info("💡 提示：所有 .m4a 檔案必須和 app.py 放在同一個資料夾內。")
+
+# --- 4. 隨機題庫 ---
 raw_quiz_pool = [
     {
         "q": "「麵包樹果」的阿美語怎麼說？",
@@ -146,7 +172,7 @@ raw_quiz_pool = [
     }
 ]
 
-# --- 4. 狀態初始化 ---
+# --- 5. 狀態初始化 ---
 if 'init' not in st.session_state:
     st.session_state.score = 0
     st.session_state.current_q_idx = 0
@@ -163,9 +189,8 @@ if 'init' not in st.session_state:
     st.session_state.quiz_questions = final_questions
     st.session_state.init = True
 
-# --- 5. 主介面 ---
+# --- 6. 主介面 ---
 
-# 標題區塊
 st.markdown("<h1 style='text-align: center; color: #BF360C;'>Kaolahan 所喜歡的</h1>", unsafe_allow_html=True)
 st.markdown("<p style='text-align: center; color: #8D6E63;'>講師：高春美 | 教材提供者：高春美</p>", unsafe_allow_html=True)
 
